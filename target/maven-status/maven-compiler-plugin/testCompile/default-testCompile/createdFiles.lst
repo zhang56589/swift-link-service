@@ -1,0 +1,4 @@
+com\swiftlink\service\ShortLinkServiceTest.class
+com\swiftlink\util\UrlUtilTest.class
+com\swiftlink\util\Base62UtilTest.class
+com\swiftlink\util\SnowflakeIdGeneratorTest.class

@@ -42,10 +42,16 @@ public class LinkCacheService {
             return dto;
         }
         try {
-            return objectMapper.readValue(value, LinkCacheDTO.class);
+            LinkCacheDTO dto = objectMapper.readValue(value, LinkCacheDTO.class);
+            // [优化点] 反序列化结果为 null 同样视为脏数据，统一走下方异常捕获，避免后续调用 NPE
+            if (dto == null) {
+                throw new JsonProcessingException("deserialized dto is null") {};
+            }
+            return dto;
         } catch (JsonProcessingException e) {
-            log.warn("缓存反序列化失败，删除脏缓存并回源，code={}", code);
-            redisTemplate.delete(key);
+            // [优化点] 脏数据改写为空值缓存而非直接删除，防止脏数据被反复写入后持续击穿数据库
+            log.warn("缓存反序列化失败，改写空值缓存防止脏数据反复击穿数据库，code={}", code);
+            putNull(code);
             return null;
         }
     }

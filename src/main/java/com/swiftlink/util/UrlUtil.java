@@ -72,6 +72,21 @@ public final class UrlUtil {
         if (value.matches("^169\\.254\\.\\d{1,3}\\.\\d{1,3}$")) {
             return true;
         }
-        return value.matches("^172\\.(1[6-9]|2\\d|3[0-1])\\.\\d{1,3}\\.\\d{1,3}$");
+        if (value.matches("^172\\.(1[6-9]|2\\d|3[0-1])\\.\\d{1,3}\\.\\d{1,3}$")) {
+            return true;
+        }
+        // [优化点] 拦截 IPv6 唯一本地地址（fc00::/7，如 fc00:/fd00: 开头），修复 SSRF 绕过
+        if (value.matches("^f[cd][0-9a-f]{2}:.*")) {
+            return true;
+        }
+        // [优化点] 拦截 IPv6 链路本地地址（fe80::/10）
+        if (value.matches("^fe[89ab][0-9a-f]:.*")) {
+            return true;
+        }
+        // [优化点] 拦截 IPv4 映射的 IPv6 地址（如 ::ffff:127.0.0.1），提取内嵌 IPv4 复用原有校验
+        if (value.startsWith("::ffff:") && isInternalHost(value.substring("::ffff:".length()))) {
+            return true;
+        }
+        return false;
     }
 }

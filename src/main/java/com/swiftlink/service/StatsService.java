@@ -11,6 +11,8 @@ import com.swiftlink.mapper.ShortLinkMapper;
 import com.swiftlink.util.RedisKeyUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.redisson.api.RLock;
+import org.redisson.api.RedissonClient;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -18,6 +20,7 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 /**
  * 访问统计：实时数据读 Redis，历史数据读 MySQL，定时任务将当日计数落库。
@@ -34,6 +37,8 @@ public class StatsService {
     private final LinkDailyStatsMapper dailyStatsMapper;
 
     private final ShortLinkMapper shortLinkMapper;
+
+    private final RedissonClient redissonClient;
 
     public LinkStatsVO query(String shortCode, LocalDate date) {
         ShortLink link = shortLinkMapper.selectByShortCode(shortCode);
@@ -71,15 +76,30 @@ public class StatsService {
      */
     @Scheduled(cron = "0 */5 * * * ?")
     public void flushToDatabase() {
-        Set<String> keys = redisTemplate.opsForSet().members(RedisKeyUtil.STATS_ACTIVE);
-        if (keys == null || keys.isEmpty()) {
-            return;
-        }
-        for (String pvKey : keys) {
-            try {
-                flushOne(pvKey);
-            } catch (Exception e) {
-                log.warn("统计落库失败，key={}: {}", pvKey, e.getMessage());
+        // [优化点] 分布式锁保证集群只有一个节点执行落库，抢不到直接返回，避免无谓的 MySQL 行锁竞争
+        RLock lock = redissonClient.getLock(RedisKeyUtil.STATS_FLUSH_LOCK);
+        boolean locked = false;
+        try {
+            locked = lock.tryLock(0, 10, TimeUnit.SECONDS);
+            if (!locked) {
+                return;
+            }
+            Set<String> keys = redisTemplate.opsForSet().members(RedisKeyUtil.STATS_ACTIVE);
+            if (keys == null || keys.isEmpty()) {
+                return;
+            }
+            for (String pvKey : keys) {
+                try {
+                    flushOne(pvKey);
+                } catch (Exception e) {
+                    log.warn("统计落库失败，key={}: {}", pvKey, e.getMessage());
+                }
+            }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        } finally {
+            if (locked && lock.isHeldByCurrentThread()) {
+                lock.unlock();
             }
         }
     }

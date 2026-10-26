@@ -27,6 +27,8 @@ public final class RedisKeyUtil {
 
     public static final String STATS_ACTIVE = "short:stats:active";
 
+    public static final String STATS_FLUSH_LOCK = "lock:stats:flush";
+
     private RedisKeyUtil() {
     }
 

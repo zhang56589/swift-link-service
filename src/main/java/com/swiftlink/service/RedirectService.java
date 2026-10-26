@@ -92,7 +92,9 @@ public class RedirectService {
                     return cache;
                 }
             }
-            return loadFromDatabase(code);
+            // [优化点] 自旋 60ms 仍未命中，说明重建异常或极慢，直接降级，不再回源压向数据库
+            log.warn("Cache rebuild timeout after spin wait, degrade to SYSTEM_BUSY, code={}", code);
+            throw new BusinessException(ErrorCode.SYSTEM_BUSY);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             return loadFromDatabase(code);
@@ -104,7 +106,14 @@ public class RedirectService {
     }
 
     private LinkCacheDTO loadFromDatabase(String code) {
-        ShortLink link = shortLinkMapper.selectByShortCode(code);
+        ShortLink link;
+        try {
+            link = shortLinkMapper.selectByShortCode(code);
+        } catch (Exception e) {
+            // [优化点] 数据库宕机或超时，直接降级，防止后续请求继续压向数据库
+            log.error("Load short link from database failed, degrade to SYSTEM_BUSY, code={}", code, e);
+            throw new BusinessException(ErrorCode.SYSTEM_BUSY);
+        }
         if (link == null) {
             linkCacheService.putNull(code);
             LinkCacheDTO dto = new LinkCacheDTO();

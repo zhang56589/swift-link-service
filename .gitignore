@@ -1,18 +1,47 @@
-# IDEA
-.idea/
-*.iml
-*.iws
-*.ipr
+# ===== 追加区 =====
 
-# Maven
-target/
+# Trae / AI 工具缓存与规则（视你是否愿意开源规则而定）
+.trae/
+# 如果你希望把 rules 开源给面试官看，可以用下面这行代替上面那行：
+# !.trae/rules/project_rules.md
 
-# 系统文件
-.DS_Store
-Thumbs.db
+# 本地配置与密钥（重点防御区）
+.env
+*.env
+application-*.properties
+application-*.yml
+# 如果你已经把真实密码写进了 application.yml，千万别传！可以用占位符或环境变量
 
-# 日志
-*.log
+# 临时测试与请求文件
+*.http
+*.rest
+test.http
+请求.txt
 
-# 本地环境配置
-application-local.yml
+# IDE 自动生成的库文件和缓存
+.gradle/
+build/
+out/
+bin/
+.vscode/
+*.class
+*.jar
+*.war
+
+# 数据库本地临时文件
+*.sqlite
+*.db
+
+# Redis / MySQL 本地临时数据
+dump.rdb
+appendonly.aof
+*.pid
+
+# Node（如果你的前端/辅助工具用了）
+node_modules/
+npm-debug.log*
+
+# 操作系统额外文件
+.Spotlight-V100
+.Trashes
+ehthumbs.db

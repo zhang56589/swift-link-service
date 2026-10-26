@@ -16,7 +16,8 @@ public enum ErrorCode {
     BLACKLISTED(40302, "请求已被安全策略拦截", HttpStatus.FORBIDDEN),
     LINK_EXPIRED(41001, "短链接已过期", HttpStatus.GONE),
     RATE_LIMITED(42901, "访问过于频繁，请稍后再试", HttpStatus.TOO_MANY_REQUESTS),
-    SYSTEM_ERROR(50000, "系统繁忙，请稍后重试", HttpStatus.INTERNAL_SERVER_ERROR);
+    SYSTEM_ERROR(50000, "系统繁忙，请稍后重试", HttpStatus.INTERNAL_SERVER_ERROR),
+    SYSTEM_BUSY(50300, "系统繁忙，请稍后重试", HttpStatus.SERVICE_UNAVAILABLE);
 
     private final int code;
 

@@ -1,0 +1,100 @@
+server:
+  port: ${SERVER_PORT:8080}
+  tomcat:
+    threads:
+      max: 200
+    max-connections: 10000
+    accept-count: 1000
+
+spring:
+  application:
+    name: swift-link-service
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://${MYSQL_HOST:127.0.0.1}:${MYSQL_PORT:3306}/${MYSQL_DB:swift_link}?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true&rewriteBatchedStatements=true
+    username: ${MYSQL_USERNAME:root}
+    password: 123456
+    hikari:
+      maximum-pool-size: 20
+      minimum-idle: 5
+      connection-timeout: 3000
+      idle-timeout: 600000
+      max-lifetime: 1800000
+
+  data:
+    redis:
+      host: ${REDIS_HOST:127.0.0.1}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+      database: ${REDIS_DATABASE:0}
+      timeout: 2000ms
+      lettuce:
+        pool:
+          max-active: 32
+          max-idle: 16
+          min-idle: 4
+          max-wait: 500ms
+
+  cloud:
+    nacos:
+      discovery:
+        server-addr: ${NACOS_SERVER_ADDR:127.0.0.1:8848}
+        namespace: ${NACOS_NAMESPACE:}
+        enabled: ${NACOS_ENABLED:false}
+      config:
+        server-addr: ${NACOS_SERVER_ADDR:127.0.0.1:8848}
+        namespace: ${NACOS_NAMESPACE:}
+        file-extension: yaml
+        enabled: ${NACOS_ENABLED:false}
+        import-check:
+          enabled: false
+
+  # Nacos 配置中心可选接入，未部署 Nacos 时不影响本地启动
+  config:
+    import:
+      - optional:nacos:${spring.application.name}.yaml
+
+  jackson:
+    default-property-inclusion: non_null
+    time-zone: Asia/Shanghai
+
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true
+  global-config:
+    banner: false
+    db-config:
+      id-type: auto
+
+swift-link:
+  # 短链接对外域名，生产环境替换为网关/短域名
+  domain: ${SHORT_LINK_DOMAIN:http://s.link}
+  # 内部管理接口令牌，生产环境必须通过环境变量覆盖
+  admin-token: ${ADMIN_TOKEN:change-me}
+  # 允许跳转的域名后缀，为空表示不启用白名单（仍受黑名单与内网地址拦截约束）
+  allow-hosts: []
+  cache:
+    ttl-seconds: 1800
+    null-ttl-seconds: 30
+    jitter-seconds: 300
+  code-pool:
+    key: short:code:pool
+    min-size: 500
+    batch-size: 2000
+    max-size: 20000
+    replenish-lock-seconds: 10
+  rate-limit:
+    ip-limit: 60
+    ip-window-seconds: 60
+    code-limit: 1000
+    code-window-seconds: 60
+  snowflake:
+    worker-id: ${SNOWFLAKE_WORKER_ID:1}
+    datacenter-id: ${SNOWFLAKE_DATACENTER_ID:1}
+
+logging:
+  level:
+    root: info
+    com.swiftlink: info
+  pattern:
+    console: "%d{HH:mm:ss.SSS} %-5level [%thread] %logger{36} - %msg%n"

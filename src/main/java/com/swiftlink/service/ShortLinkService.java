@@ -62,13 +62,17 @@ public class ShortLinkService {
             try {
                 locked = lock.tryLock(1, 3, TimeUnit.SECONDS);
                 if (!locked) {
-                    log.warn("短码锁获取失败，尝试下一个短码，code={}", code);
+                    // [优化点] 未抢到锁说明短码本次未使用，归还池子避免浪费
+                    log.warn("短码锁获取失败，归还短码并尝试下一个，code={}", code);
+                    shortCodeService.release(code);
                     continue;
                 }
                 Long exists = shortLinkMapper.selectCount(new LambdaQueryWrapper<ShortLink>()
                         .eq(ShortLink::getShortCode, code));
                 if (exists != null && exists > 0) {
-                    log.warn("短码已存在，重新获取，code={}", code);
+                    // [优化点] 短码已存在（雪花重复概率极低），归还池子避免浪费
+                    log.warn("短码已存在，归还短码并重新获取，code={}", code);
+                    shortCodeService.release(code);
                     continue;
                 }
                 LocalDateTime now = LocalDateTime.now();

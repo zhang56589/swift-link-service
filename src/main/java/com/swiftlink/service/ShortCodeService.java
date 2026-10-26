@@ -70,6 +70,21 @@ public class ShortCodeService {
     }
 
     /**
+     * 归还未成功使用的短码：RPUSH 放回池尾。
+     * RPUSH 本身原子，无需再加分布式锁，避免与补充锁嵌套引发死锁；归还失败仅记日志丢弃，不阻塞创建链路。
+     */
+    public void release(String code) {
+        if (code == null || code.isEmpty()) {
+            return;
+        }
+        try {
+            redisTemplate.opsForList().rightPush(properties.getCodePool().getKey(), code);
+        } catch (Exception e) {
+            log.warn("短码归还失败，直接丢弃，code={}: {}", code, e.getMessage());
+        }
+    }
+
+    /**
      * 池容量低于阈值时补充；Redisson 锁保证集群中只有一个节点执行批量生成。
      */
     public void replenishIfNeeded() {
